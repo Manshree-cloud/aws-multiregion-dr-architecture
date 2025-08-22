@@ -18,3 +18,15 @@ Build a cost-optimized, reproducible multi-region DR reference on AWS using Clou
 
 ## How to run (Day 1)
 See commands in `/cloudformation/day1-ec2.yml` section of this README.
+## Day 1 — Result
+
+**Public DNS:** `http://ec2-15-222-10-193.ca-central-1.compute.amazonaws.com`
+
+**What I verified**
+- EC2 in ca-central-1 is running and reachable over HTTP (80)
+- NGINX serves a page with Region, AZ, and Instance ID
+
+**Screenshot**
+
+
+![Day 1 Hello](demo/failover-test-screenshots/day1-hello.png)
