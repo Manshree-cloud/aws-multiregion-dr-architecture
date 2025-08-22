@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Day 1 - One EC2 in default VPC with NGINX hello page.
+
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Existing EC2 key pair name in this region (e.g., dr-key)
+  VpcId:
+    Type: String
+    Description: ID of your default VPC (looks like vpc-xxxxxxxx)
+  SubnetId:
+    Type: String
+    Description: A public subnet ID in that VPC (looks like subnet-xxxxxxxx)
+  AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
+
+Resources:
+  WebSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP (80) and SSH (22)
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+  WebInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: t3.micro
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          SubnetId: !Ref SubnetId
+          GroupSet: [ !Ref WebSG ]
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          dnf -y update
+          dnf -y install nginx
+          systemctl enable nginx
+          systemctl start nginx
+          TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+          IID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+          AZ=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone)
+          echo "<html><body style='font-family:sans-serif'><h1>Hello Multi-Region DR</h1><p><b>Region:</b> ${AWS::Region}</p><p><b>AZ:</b> $AZ</p><p><b>Instance ID:</b> $IID</p></body></html>" > /usr/share/nginx/html/index.html
+
+Outputs:
+  PublicDNS:
+    Description: Public DNS of the web server
+    Value: !GetAtt WebInstance.PublicDnsName
