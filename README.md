@@ -61,4 +61,15 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 ![Day 3 — ASG](demo/failover-test-screenshots/day3-asg.png)
 
 
+## Day 4 — Secondary Region (us-east-1)
+
+**Public DNS:** http://ec2-3-237-201-160.compute-1.amazonaws.com/
+
+**What I built**
+- Separate VPC in us-east-1 with 2 public + 2 private subnets
+- ASG (min/desired/max = 1) serving the same NGINX page
+
+**Screenshot**
+
+![Day 4 — Secondary](demo/failover-test-screenshots/day4-secondary.png)
 
