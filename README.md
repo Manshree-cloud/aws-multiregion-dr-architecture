@@ -44,7 +44,7 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 
 **Screenshot**
 
-![Day 2 — Custom VPC](demo/failover-test-screenshots/day2-custom-vpc.png)
+![Day 2 — Custom VPC](demo/failover-test-screenshots/day2.png)
 
 
 
