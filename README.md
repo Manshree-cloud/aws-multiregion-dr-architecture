@@ -20,7 +20,7 @@ Build a cost-optimized, reproducible multi-region DR reference on AWS using Clou
 See commands in `/cloudformation/day1-ec2.yml` section of this README.
 ## Day 1 — Result
 
-**Public DNS:** `http://ec2-15-222-10-193.ca-central-1.compute.amazonaws.com`
+**Public DNS:** http://ec2-15-222-10-193.ca-central-1.compute.amazonaws.com
 
 **What I verified**
 - EC2 in ca-central-1 is running and reachable over HTTP (80)
@@ -34,7 +34,7 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 
 ## Day 2 — Custom VPC + Public/Private Subnets (Result)
 
-**Public DNS:** `http://<YOUR_DNS>`
+**Public DNS:** http://ec2-3-96-191-145.ca-central-1.compute.amazonaws.com/
 
 **What I built**
 - New VPC (`10.31.0.0/16`) with 2 public and 2 private subnets across 2 AZs
@@ -53,7 +53,7 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 - CloudWatch alarm: in-service instances < 1
 
 **What I tested**
-- Reached the ASG-backed instance at `http://<public-dns>`
+- Reached the ASG-backed instance at http://ec2-99-79-67-101.ca-central-1.compute.amazonaws.com/
 - Terminated the instance; ASG launched a replacement automatically
 
 **Screenshot**
