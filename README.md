@@ -30,3 +30,21 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 
 
 ![Day 1 Hello](demo/failover-test-screenshots/day1-hello.png)
+
+
+## Day 2 — Custom VPC + Public/Private Subnets (Result)
+
+**Public DNS:** `http://<YOUR_DNS>`
+
+**What I built**
+- New VPC (`10.31.0.0/16`) with 2 public and 2 private subnets across 2 AZs
+- Internet Gateway + public route table (0.0.0.0/0 → IGW)
+- Security group allowing HTTP(80) and SSH(22) for demo
+- One EC2 (t3.micro) in Public Subnet 1 serving NGINX
+
+**Screenshot**
+
+![Day 2 — Custom VPC](demo/failover-test-screenshots/day2-custom-vpc.png)
+
+
+
