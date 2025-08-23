@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Day 3 - Auto Scaling Group (desired=1) in Day-2 VPC, no ALB (cost-friendly).
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: dr
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID from Day 2 outputs
+  PublicSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Two public subnet IDs from Day 2 outputs (comma-separated)
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Existing key pair in ca-central-1 (e.g., dr-key)
+  InstanceType:
+    Type: String
+    Default: t3.micro
+  AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
+
+Resources:
+  AppSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP(80) and SSH(22)
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: tcp, FromPort: 22, ToPort: 22, CidrIp: 0.0.0.0/0 }
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-asg-sg'
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        ImageId: !Ref AmiId
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyName
+        SecurityGroupIds: [ !Ref AppSG ]
+        MetadataOptions: { HttpTokens: required }
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash -xe
+            dnf -y update
+            dnf -y install nginx
+            systemctl enable nginx
+            systemctl start nginx
+            TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+            IID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+            AZ=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone)
+            cat >/usr/share/nginx/html/index.html <<HTML
+            <html><body style='font-family:sans-serif'>
+            <h1>DR Day 3 — Auto Scaling Group</h1>
+            <p><b>Region:</b> ${AWS::Region}</p>
+            <p><b>AZ:</b> $AZ</p>
+            <p><b>Instance ID:</b> $IID</p>
+            </body></html>
+            HTML
+
+  ASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref PublicSubnetIds
+      MinSize: '1'
+      MaxSize: '1'
+      DesiredCapacity: '1'
+      HealthCheckType: EC2
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-day3-asg-instance'
+          PropagateAtLaunch: true
+
+  ASGCapacityAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-asg-inservice-below-1'
+      AlarmDescription: 'Alarm when in-service instances drop below 1.'
+      Namespace: AWS/AutoScaling
+      MetricName: GroupInServiceInstances
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref ASG
+      Statistic: Minimum
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: LessThanThreshold
+      Threshold: 1
+      TreatMissingData: breaching
+
+Outputs:
+  ASGName:
+    Description: Name of the Auto Scaling Group
+    Value: !Ref ASG
