@@ -45,6 +45,20 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 **Screenshot**
 
 ![Day 2 — Custom VPC](demo/failover-test-screenshots/day2.png)
+## Day 3 — Auto Scaling Group (ASG)
+
+**What I built**
+- Launch Template + Auto Scaling Group (min/desired/max = 1) in my Day-2 VPC
+- Security Group allows HTTP(80) + SSH(22)
+- CloudWatch alarm: in-service instances < 1
+
+**What I tested**
+- Reached the ASG-backed instance at `http://<public-dns>`
+- Terminated the instance; ASG launched a replacement automatically
+
+**Screenshot**
+
+![Day 3 — ASG](demo/failover-test-screenshots/day3-asg.png)
 
 
 
