@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Day 5 - Source S3 (ca-central-1) + IAM role + CRR to destination
+
+Parameters:
+  SourceBucketName: { Type: String }
+  DestinationBucketArn: { Type: String }
+  DestinationRegion: { Type: String, Default: us-east-1 }
+
+Resources:
+  ReplicationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub dr-s3-replication-${SourceBucketName}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: s3.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: s3-replication-policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # read from source
+              - Effect: Allow
+                Action:
+                  - s3:GetReplicationConfiguration
+                  - s3:ListBucket
+                Resource: !Sub arn:aws:s3:::${SourceBucketName}
+              - Effect: Allow
+                Action:
+                  - s3:GetObjectVersion
+                  - s3:GetObjectVersionAcl
+                  - s3:GetObjectVersionTagging
+                Resource: !Sub arn:aws:s3:::${SourceBucketName}/*
+              # write to destination
+              - Effect: Allow
+                Action:
+                  - s3:ReplicateObject
+                  - s3:ReplicateDelete
+                  - s3:ReplicateTags
+                  - s3:ObjectOwnerOverrideToBucketOwner
+                Resource:
+                  - !Ref DestinationBucketArn
+                  - !Sub ${DestinationBucketArn}/*
+
+  SourceBucket:
+    Type: AWS::S3::Bucket
+    DependsOn: ReplicationRole
+    Properties:
+      BucketName: !Ref SourceBucketName
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      ReplicationConfiguration:
+        Role: !GetAtt ReplicationRole.Arn
+        Rules:
+          - Id: replicate-all
+            Priority: 1
+            Status: Enabled
+            Filter:
+              Prefix: ""
+            DeleteMarkerReplication:
+              Status: Disabled
+            Destination:
+              Bucket: !Ref DestinationBucketArn
+              Account: !Ref AWS::AccountId
+              StorageClass: STANDARD
+
+Outputs:
+  SourceBucketName:   { Value: !Ref SourceBucket }
+  ReplicationRoleArn: { Value: !GetAtt ReplicationRole.Arn }
