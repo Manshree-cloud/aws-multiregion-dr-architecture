@@ -71,5 +71,50 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 
 **Screenshot**
 
-![Day 4 — Secondary](demo/failover-test-screenshots/day4-secondary.png)
+![Day 4 — Secondary](demo/failover-test-screenshots/day4-secondary.png) 
+## Regional Failover Demonstration (no custom domain) 
+
+**Goal:** Prove that the application can continue serving traffic from a **secondary region** when the **primary region** becomes unavailable.
+
+### Architecture
+- **Primary:** ca-central-1 — Auto Scaling Group (desired=1) serving NGINX
+- **Secondary:** us-east-1 — Auto Scaling Group (desired=1) serving the same page
+- **Health Signal:** HTTP 200 from `/`
+- **Client Fallback Tester:** A small PowerShell loop that hits the primary; on failure, it falls back to the secondary
+
+### Endpoints
+- Primary: http://ec2-15-156-193-103.ca-central-1.compute.amazonaws.com/
+
+- Secondary: http://ec2-34-201-48-251.compute-1.amazonaws.com/
+
+### What I did
+1. Verified the primary endpoint returns **200 OK**.
+2. Ran a **fallback tester** (`demo/failover_tester.ps1`) that polls the primary and automatically switches to the secondary if the primary fails.
+3. **Simulated an outage** by scaling the primary ASG to zero instances.
+4. Observed the tester switch from `PRIMARY OK` to `PRIMARY FAIL -> fallback` and then `SECONDARY OK`.
+5. **Restored** the primary ASG and confirmed traffic returned to `PRIMARY OK`.
+
+### Commands I used (for reproducibility)
+
+Scale primary to 0 (simulate failure):
+`bash
+ASG_PRI=$(aws cloudformation describe-stack-resource \
+  --stack-name dr-day3-asg \
+  --logical-resource-id ASG \
+  --region ca-central-1 \
+  --query "StackResourceDetail.PhysicalResourceId" --output text)
+
+aws autoscaling update-auto-scaling-group \
+  --auto-scaling-group-name "$ASG_PRI" \
+  --desired-capacity 0 --min-size 0 \
+  --region ca-central-1
+aws autoscaling update-auto-scaling-group \
+  --auto-scaling-group-name "$ASG_PRI" \
+  --desired-capacity 1 --min-size 1 \
+  --region ca-central-1
+
+**Screenshots**
+
+![Day 4 — Before (Primary OK)](demo/failover-test-screenshots/day4-failover-before.png)
+![Day 4 — After (Secondary Serving)](demo/failover-test-screenshots/day4-failover-after.png)
 
