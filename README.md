@@ -118,3 +118,23 @@ aws autoscaling update-auto-scaling-group \
 ![Day 4 — Before (Primary OK)](demo/failover-test-screenshots/day4-failover-before.png)
 ![Day 4 — After (Secondary Serving)](demo/failover-test-screenshots/day4-failover-after.png)
 
+## Day 5 — S3 Cross-Region Replication (CRR)
+
+**What I built**
+- Versioned, encrypted S3 buckets in two regions:
+  - Source (ca-central-1): `s3://<YOUR_SRC_BUCKET>`
+  - Destination (us-east-1): `s3://<YOUR_DST_BUCKET>`
+- IAM replication role assumed by S3
+- Replication rule: all objects from source → destination
+
+**What I tested**
+- Uploaded `demo/inventory.csv` to the source bucket
+- Verified the object appeared in the destination bucket automatically
+
+**Screenshots**
+
+![Day 5 — Source](demo/failover-test-screenshots/day5-s3-source.png)
+![Day 5 — Destination](demo/failover-test-screenshots/day5-s3-dest.png)
+![Day 5 — Destination](demo/failover-test-screenshots/day5-s3-dest-details.png)
+
+
