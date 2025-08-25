@@ -133,7 +133,7 @@ aws autoscaling update-auto-scaling-group \
 
 **Screenshots**
 
-![Day 5 — Source](demo/failover-test-screenshots/day5-s3-source.png)
+![Day 5 — Source](demo/failover-test-screenshots/day5-s3-src.png)
 ![Day 5 — Destination](demo/failover-test-screenshots/day5-s3-dest.png)
 ![Day 5 — Destination](demo/failover-test-screenshots/day5-s3-dest-details.png)
 
