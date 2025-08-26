@@ -137,7 +137,7 @@ aws autoscaling update-auto-scaling-group \
 ![Day 5 — Destination](demo/failover-test-screenshots/day5-s3-dest.png)
 ![Day 5 — Destination](demo/failover-test-screenshots/day5-s3-dest-details.png)
 
-## Day 6 — RDS Connectivity Test (optional)
+## Day 6 — RDS Connectivity Test 
 
 **What I built**
 - RDS MySQL (Single-AZ, db.t3.micro) in private subnets of the primary VPC
