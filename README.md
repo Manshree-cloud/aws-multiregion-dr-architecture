@@ -7,13 +7,13 @@
 Build a cost-optimized, reproducible multi-region DR reference on AWS using CloudFormation.
 
 ## Roadmap
-- [ ] Day 1: Hello World EC2 (default VPC) + NGINX
-- [ ] Day 2: Custom VPC with public/private subnets (primary)
-- [ ] Day 3: Auto Scaling Group (primary)
-- [ ] Day 4: Secondary region EC2/ASG
-- [ ] Day 5: S3 Cross-Region Replication
-- [ ] Day 6: Route 53 failover (health checks)
-- [ ] Day 7: RDS Multi-AZ (primary) + alarms
+- [ ] Hello World EC2 (default VPC) + NGINX
+- [ ] Custom VPC with public/private subnets (primary)
+- [ ] Auto Scaling Group (primary)
+- [ ] Secondary region EC2/ASG
+- [ ] S3 Cross-Region Replication
+- [ ] Route 53 failover (health checks)
+- [ ] RDS Multi-AZ (primary) + alarms
 - [ ] Docs: Architecture diagram + screenshots + cleanup
 
 ## How to run (Day 1)
@@ -32,7 +32,7 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 ![Day 1 Hello](demo/failover-test-screenshots/day1-hello.png)
 
 
-## Day 2 — Custom VPC + Public/Private Subnets (Result)
+## Custom VPC + Public/Private Subnets (Result)
 
 **Public DNS:** http://ec2-3-96-191-145.ca-central-1.compute.amazonaws.com/
 
@@ -45,7 +45,9 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 **Screenshot**
 
 ![Day 2 — Custom VPC](demo/failover-test-screenshots/day2.png)
-## Day 3 — Auto Scaling Group (ASG)
+
+
+## Auto Scaling Group (ASG)
 
 **What I built**
 - Launch Template + Auto Scaling Group (min/desired/max = 1) in my Day-2 VPC
@@ -61,7 +63,7 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 ![Day 3 — ASG](demo/failover-test-screenshots/day3-asg.png)
 
 
-## Day 4 — Secondary Region (us-east-1)
+## Secondary Region (us-east-1)
 
 **Public DNS:** http://ec2-3-237-201-160.compute-1.amazonaws.com/
 
@@ -72,6 +74,7 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 **Screenshot**
 
 ![Day 4 — Secondary](demo/failover-test-screenshots/day4-secondary.png) 
+
 ## Regional Failover Demonstration (no custom domain) 
 
 **Goal:** Prove that the application can continue serving traffic from a **secondary region** when the **primary region** becomes unavailable.
@@ -118,7 +121,7 @@ aws autoscaling update-auto-scaling-group \
 ![Day 4 — Before (Primary OK)](demo/failover-test-screenshots/day4-failover-before.png)
 ![Day 4 — After (Secondary Serving)](demo/failover-test-screenshots/day4-failover-after.png)
 
-## Day 5 — S3 Cross-Region Replication (CRR)
+## S3 Cross-Region Replication (CRR)
 
 **What I built**
 - Versioned, encrypted S3 buckets in two regions:
@@ -137,7 +140,7 @@ aws autoscaling update-auto-scaling-group \
 ![Day 5 — Destination](demo/failover-test-screenshots/day5-s3-dest.png)
 ![Day 5 — Destination](demo/failover-test-screenshots/day5-s3-dest-details.png)
 
-## Day 6 — RDS Connectivity Test 
+## RDS Connectivity Test 
 
 **What I built**
 - RDS MySQL (Single-AZ, db.t3.micro) in private subnets of the primary VPC
