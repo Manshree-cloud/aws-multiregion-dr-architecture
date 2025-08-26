@@ -137,4 +137,20 @@ aws autoscaling update-auto-scaling-group \
 ![Day 5 — Destination](demo/failover-test-screenshots/day5-s3-dest.png)
 ![Day 5 — Destination](demo/failover-test-screenshots/day5-s3-dest-details.png)
 
+## Day 6 — RDS Connectivity Test (optional)
+
+**What I built**
+- RDS MySQL (Single-AZ, db.t3.micro) in private subnets of the primary VPC
+- SG allows MySQL (3306) only from within the VPC CIDR
+
+**What I tested**
+- Connected from the primary EC2 to the RDS endpoint
+- Created table `items` and inserted sample rows; verified with `SELECT * FROM items;`
+
+**Screenshots**
+
+![Day 6 — RDS Instance](demo/failover-test-screenshots/day6-rds-instance.png)
+![Day 6 — MySQL Seed](demo/failover-test-screenshots/day6-mysql-seed.png)
+
+
 
