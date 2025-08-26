@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Day 6 - Minimal RDS MySQL (Single-AZ) in ca-central-1, private subnets
+
+Parameters:
+  VpcId: { Type: String }
+  VpcCidr: { Type: String }
+  PrivateSubnet1: { Type: String }
+  PrivateSubnet2: { Type: String }
+  DbUser: { Type: String, Default: appuser }
+  DbPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 12
+    Description: Strong password for the DB master user
+  DbName: { Type: String, Default: appdb }
+
+Resources:
+  DbSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow MySQL from within VPC
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: !Ref VpcCidr
+
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private subnets for RDS
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      StorageType: gp3
+      Engine: mysql
+      PubliclyAccessible: false
+      MultiAZ: false
+      AutoMinorVersionUpgrade: true
+      DeletionProtection: false
+      BackupRetentionPeriod: 1
+      DBName: !Ref DbName
+      MasterUsername: !Ref DbUser
+      MasterUserPassword: !Ref DbPassword
+      VPCSecurityGroups: [ !Ref DbSG ]
+      DBSubnetGroupName: !Ref DbSubnetGroup
+
+Outputs:
+  DbEndpoint:
+    Description: RDS endpoint DNS name
+    Value: !GetAtt DBInstance.Endpoint.Address
