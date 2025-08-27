@@ -16,9 +16,6 @@ Build a cost-optimized, reproducible multi-region DR reference on AWS using Clou
 - [ ] RDS Multi-AZ (primary) + alarms
 - [ ] Docs: Architecture diagram + screenshots + cleanup
 
-## How to run (Day 1)
-See commands in `/cloudformation/day1-ec2.yml` section of this README.
-## Day 1 — Result
 
 **Public DNS:** http://ec2-15-222-10-193.ca-central-1.compute.amazonaws.com
 
@@ -29,7 +26,7 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 **Screenshot**
 
 
-![Day 1 Hello](demo/failover-test-screenshots/day1-hello.png)
+!Hello(demo/failover-test-screenshots/day1-hello.png)
 
 
 ## Custom VPC + Public/Private Subnets (Result)
@@ -44,7 +41,7 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 
 **Screenshot**
 
-![Day 2 — Custom VPC](demo/failover-test-screenshots/day2.png)
+!Custom VPC(demo/failover-test-screenshots/day2.png)
 
 
 ## Auto Scaling Group (ASG)
@@ -60,7 +57,7 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 
 **Screenshot**
 
-![Day 3 — ASG](demo/failover-test-screenshots/day3-asg.png)
+!ASG(demo/failover-test-screenshots/day3-asg.png)
 
 
 ## Secondary Region (us-east-1)
@@ -73,7 +70,7 @@ See commands in `/cloudformation/day1-ec2.yml` section of this README.
 
 **Screenshot**
 
-![Day 4 — Secondary](demo/failover-test-screenshots/day4-secondary.png) 
+!Secondary (demo/failover-test-screenshots/day4-secondary.png) 
 
 ## Regional Failover Demonstration (no custom domain) 
 
@@ -118,8 +115,8 @@ aws autoscaling update-auto-scaling-group \
 
 **Screenshots**
 
-![Day 4 — Before (Primary OK)](demo/failover-test-screenshots/day4-failover-before.png)
-![Day 4 — After (Secondary Serving)](demo/failover-test-screenshots/day4-failover-after.png)
+!Before (Primary OK)](demo/failover-test-screenshots/day4-failover-before.png)
+!After (Secondary Serving)](demo/failover-test-screenshots/day4-failover-after.png)
 
 ## S3 Cross-Region Replication (CRR)
 
@@ -136,9 +133,9 @@ aws autoscaling update-auto-scaling-group \
 
 **Screenshots**
 
-![Day 5 — Source](demo/failover-test-screenshots/day5-s3-src.png)
-![Day 5 — Destination](demo/failover-test-screenshots/day5-s3-dest.png)
-![Day 5 — Destination](demo/failover-test-screenshots/day5-s3-dest-details.png)
+!Source](demo/failover-test-screenshots/day5-s3-src.png)
+!Destination](demo/failover-test-screenshots/day5-s3-dest.png)
+!Destination](demo/failover-test-screenshots/day5-s3-dest-details.png)
 
 ## RDS Connectivity Test 
 
@@ -152,8 +149,63 @@ aws autoscaling update-auto-scaling-group \
 
 **Screenshots**
 
-![Day 6 — RDS Instance](demo/failover-test-screenshots/day6-rds-instance.png)
-![Day 6 — MySQL Seed](demo/failover-test-screenshots/day6-mysql-seed.png)
+!— RDS Instance](demo/failover-test-screenshots/day6-rds-instance.png)
+!— MySQL Seed](demo/failover-test-screenshots/day6-mysql-seed.png)
+
+## Monitoring & Alerts (CloudWatch + SNS)
+
+**What I built**
+- **SNS Topic:** `dr-alerts` (email subscription confirmed).
+- **CloudWatch Alarms (ca-central-1):**
+  - `dr-Primary-ASG-InService-0` — Namespace **AWS/AutoScaling**, metric **GroupInServiceInstances**, alarm when **< 1** for 1 minute. Action: publish to `dr-alerts`.
+  - `dr-Primary-EC2-CPU-High` — Namespace **AWS/EC2**, metric **CPUUtilization**, alarm when **> 80%** for 10 minutes (period 300s × 2). Action: publish to `dr-alerts`.
+
+**What I tested**
+- Confirmed the SNS email subscription and received a **test publish**.
+- **Simulated an outage:** set the primary ASG `desired=0` → `dr-Primary-ASG-InService-0` moved to **ALARM** and sent an email notification.
+- Restored the primary ASG `desired=1` → alarm returned to **OK** and a recovery email arrived.
+
+**Commands I used (for reproducibility)**
+
+# Create topic + subscribe (replace with your email)
+REGION=ca-central-1
+TOPIC_ARN=$(aws sns create-topic --name dr-alerts --region $REGION --query TopicArn --output text)
+aws sns subscribe --topic-arn "$TOPIC_ARN" --protocol email --notification-endpoint "<your-email>" --region $REGION
+
+# Get ASG + one instance id
+ASG_PRI=$(aws cloudformation describe-stack-resource --stack-name dr-day3-asg --logical-resource-id ASG --region $REGION --query "StackResourceDetail.PhysicalResourceId" --output text)
+IID_PRI=$(aws autoscaling describe-auto-scaling-groups --region $REGION --auto-scaling-group-names "$ASG_PRI" --query "AutoScalingGroups[0].Instances[?LifecycleState=='InService'].InstanceId | [0]" --output text)
+
+# Alarm 1: primary ASG has <1 InService
+aws cloudwatch put-metric-alarm \
+  --alarm-name "dr-Primary-ASG-InService-0" \
+  --alarm-description "Alert when primary ASG has <1 InService instance" \
+  --namespace "AWS/AutoScaling" --metric-name "GroupInServiceInstances" \
+  --dimensions Name=AutoScalingGroupName,Value="$ASG_PRI" \
+  --statistic Average --period 60 --evaluation-periods 1 --datapoints-to-alarm 1 \
+  --threshold 1 --comparison-operator LessThanThreshold --unit Count \
+  --treat-missing-data breaching \
+  --alarm-actions "$TOPIC_ARN" --ok-actions "$TOPIC_ARN" \
+  --region $REGION
+
+# Alarm 2: EC2 CPU > 80% for 10 minutes
+aws cloudwatch put-metric-alarm \
+  --alarm-name "dr-Primary-EC2-CPU-High" \
+  --alarm-description "CPU > 80% for 10 minutes" \
+  --namespace "AWS/EC2" --metric-name "CPUUtilization" \
+  --dimensions Name=InstanceId,Value="$IID_PRI" \
+  --statistic Average --period 300 --evaluation-periods 2 --datapoints-to-alarm 2 \
+  --threshold 80 --comparison-operator GreaterThanThreshold \
+  --treat-missing-data notBreaching \
+  --alarm-actions "$TOPIC_ARN" --ok-actions "$TOPIC_ARN" \
+  --region $REGION
+
+**Screenshots**
+- !ASG Alarm in ALARM(demo/failover-test-screenshots/alarm-asg.png)
+- !SNS Email Notification(demo/failover-test-screenshots/sns-email.png)
+  
+
+
 
 
 
