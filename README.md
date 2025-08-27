@@ -1,23 +1,129 @@
-# Project 1 — Multi-Region Disaster Recovery (from scratch)
+# Multi-Region Disaster Recovery on AWS (IaC)
 
-**Primary Region:** ca-central-1 (Canada Central)  
-**Secondary Region:** us-east-1 (N. Virginia)
+**Primary:** `ca-central-1` | **Secondary:** `us-east-1`  
+**Stack:** VPC, EC2/ASG (both regions), S3 Cross-Region Replication, optional RDS, CloudWatch + SNS — all provisioned with CloudFormation.
 
-## Goal
-Build a cost-optimized, reproducible multi-region DR reference on AWS using CloudFormation.
-
-## Roadmap
-- [ ] Hello World EC2 (default VPC) + NGINX
-- [ ] Custom VPC with public/private subnets (primary)
-- [ ] Auto Scaling Group (primary)
-- [ ] Secondary region EC2/ASG
-- [ ] S3 Cross-Region Replication
-- [ ] Route 53 failover (health checks)
-- [ ] RDS Multi-AZ (primary) + alarms
-- [ ] Docs: Architecture diagram + screenshots + cleanup
+> This repository demonstrates a cost-aware, reproducible Disaster Recovery (DR) reference for AWS. It covers compute redundancy across regions, durable data replication, health monitoring, alerting, and operational runbooks. The documentation is written for engineering reviewers and hiring managers evaluating AWS, SRE, and DevOps skills.
 
 
+## Executive Summary
+
+- **Resiliency by design:** Active/standby architecture across two AWS regions. Instances are managed by Auto Scaling Groups (ASG) for automated replacement and steady state.
+- **Continuity validated:** A lightweight client tester verifies traffic continues from the secondary region during a simulated primary outage (zero manual server reconfiguration).
+- **Durable data replication:** Versioned S3 buckets replicate objects to a second region to reduce data-loss risk.
+- **Operational readiness:** CloudWatch alarms notify via SNS email on degraded conditions; simple CLI runbooks are included.
+- **Cost posture:** t3.micro, single-AZ demo components, public subnets for simplicity, no NAT/ALB; easy to scale up if needed.
+
+**Example validation endpoint**  
+`http://ec2-15-222-10-193.ca-central-1.compute.amazonaws.com`
 **Public DNS:** http://ec2-15-222-10-193.ca-central-1.compute.amazonaws.com
+
+---
+
+## Architecture Overview
+
+- **Compute:** EC2 behind ASG in both regions (desired=1). If an instance is terminated, ASG launches a replacement automatically.
+- **Network:** Custom VPC in primary with public/private subnets; secondary region VPC with public subnets for demo symmetry.
+- **Storage:** S3 (primary) replicates to S3 (secondary) using CRR; versioning and server-side encryption enabled.
+- **Database (optional):** RDS MySQL in private subnets (primary) — connectivity tested from the app tier, then removed to minimize cost.
+- **Monitoring & Alerts:** CloudWatch alarms (ASG InService, EC2 CPU) publish to an SNS topic with email subscription.
+
+
+
+## Repository Structure
+
+---
+
+## How to Reproduce (Quickstart)
+
+# Set regions
+export REGION_PRIMARY=ca-central-1
+export REGION_SECONDARY=us-east-1
+
+# 1) Primary VPC + EC2
+aws cloudformation deploy --stack-name dr-day2-vpc-ec2 \
+  --template-file cloudformation/day2-vpc-ec2.yml --region $REGION_PRIMARY
+
+# 2) Primary ASG
+aws cloudformation deploy --stack-name dr-day3-asg \
+  --template-file cloudformation/day3-asg.yml --region $REGION_PRIMARY
+
+# 3) Secondary ASG
+aws cloudformation deploy --stack-name dr-day4-secondary \
+  --template-file cloudformation/day4-secondary.yml --region $REGION_SECONDARY
+
+# 4) S3 CRR (deploy destination first, then source with IAM)
+aws cloudformation deploy --stack-name dr-day5-s3-dest \
+  --template-file cloudformation/day5-s3-dest.yml --region $REGION_SECONDARY
+
+aws cloudformation deploy --stack-name dr-day5-s3-src \
+  --template-file cloudformation/day5-s3-src.yml \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region $REGION_PRIMARY
+
+# 5) (Optional) RDS demo
+aws cloudformation deploy --stack-name dr-day6-rds \
+  --template-file cloudformation/day6-rds.yml --region $REGION_PRIMARY
+
+
+  Regional traffic & failover (client tester)
+
+Primary ASG serves NGINX; tester polls primary / for HTTP 200.
+
+Simulated outage = set primary desired/min to 0 → tester automatically falls back to secondary.
+
+Restore primary to 1; tester returns to primary.
+
+ASG_PRI=$(aws cloudformation describe-stack-resource --stack-name dr-day3-asg \
+  --logical-resource-id ASG --region $REGION_PRIMARY \
+  --query "StackResourceDetail.PhysicalResourceId" --output text)
+
+# simulate failure
+aws autoscaling update-auto-scaling-group --auto-scaling-group-name "$ASG_PRI" \
+  --desired-capacity 0 --min-size 0 --region $REGION_PRIMARY
+
+# restore
+aws autoscaling update-auto-scaling-group --auto-scaling-group-name "$ASG_PRI" \
+  --desired-capacity 1 --min-size 1 --region $REGION_PRIMARY
+
+Data durability (S3 CRR)
+
+Source bucket in primary replicates to destination in secondary.
+
+Validate by uploading a small CSV to source and confirming object presence in destination.
+
+Monitoring & alerting
+
+SNS topic dr-alerts with email subscription.
+
+CloudWatch alarms:
+
+ASG InService < 1 (period 60s) → SNS.
+
+EC2 CPU > 80% for 10 minutes → SNS.
+
+Security & Compliance Notes
+
+Least privilege IAM role for S3 replication (read source versions, replicate to destination).
+
+Encryption at rest for S3 objects; RDS storage encryption as configured.
+
+Network hygiene: RDS is private; SSH restricted for demo scope; no public database exposure.
+
+Secrets handling: DB credentials provided via CloudFormation parameters (NoEcho); not stored in Git.
+
+Cost Optimization
+
+t3.micro, desired=1 in each region for steady state.
+
+No NAT Gateway/ALB in this demo (public subnets for simplicity).
+
+Optional RDS is short-lived (create → test → delete).
+
+Alarms are low-cost (~$0.10 per alarm/month).
+
+
+**Evidence***
 
 **What I verified**
 - EC2 in ca-central-1 is running and reachable over HTTP (80)
@@ -73,9 +179,6 @@ Build a cost-optimized, reproducible multi-region DR reference on AWS using Clou
 ![Secondary](demo/failover-test-screenshots/day4-secondary.png) 
 
 ## Regional Failover Demonstration (no custom domain) 
-
-**Goal:** Prove that the application can continue serving traffic from a **secondary region** when the **primary region** becomes unavailable.
-
 ### Architecture
 - **Primary:** ca-central-1 — Auto Scaling Group (desired=1) serving NGINX
 - **Secondary:** us-east-1 — Auto Scaling Group (desired=1) serving the same page
@@ -204,7 +307,24 @@ aws cloudwatch put-metric-alarm \
 - ![ASG Alarm in ALARM](demo/failover-test-screenshots/asg-alaram.png)
 - ![SNS Email Notification](demo/failover-test-screenshots/cpu-alaram.png)
 - ![Cloudwatch Notification](demo/failover-test-screenshots/cloudwatch1.png)
-  
+
+  ***Cleanup***
+
+# Scale down when idle
+aws autoscaling update-auto-scaling-group --auto-scaling-group-name "<ASG_PRIMARY>" \
+  --desired-capacity 0 --min-size 0 --region ca-central-1
+aws autoscaling update-auto-scaling-group --auto-scaling-group-name "<ASG_SECONDARY>" \
+  --desired-capacity 0 --min-size 0 --region us-east-1
+
+# Optional: delete RDS demo
+aws cloudformation delete-stack --stack-name dr-day6-rds --region ca-central-1
+
+# Optional: delete alarms
+aws cloudwatch delete-alarms \
+  --alarm-names dr-Primary-ASG-InService-0 dr-Primary-EC2-CPU-High \
+  --region ca-central-1
+
+
 
 
 
