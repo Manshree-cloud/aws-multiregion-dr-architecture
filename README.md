@@ -149,8 +149,8 @@ aws autoscaling update-auto-scaling-group \
 
 **Screenshots**
 
-!— [RDS Instance](demo/failover-test-screenshots/day6-rds-instance.png)
-!— [MySQL Seed](demo/failover-test-screenshots/day6-mysql-seed.png)
+![RDS Instance](demo/failover-test-screenshots/day6-rds-instance.png)
+![MySQL Seed](demo/failover-test-screenshots/day6-mysql-seed.png)
 
 ## Monitoring & Alerts (CloudWatch + SNS)
 
