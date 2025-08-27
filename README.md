@@ -26,7 +26,7 @@ Build a cost-optimized, reproducible multi-region DR reference on AWS using Clou
 **Screenshot**
 
 
-!Hello(demo/failover-test-screenshots/day1-hello.png)
+![Hello](demo/failover-test-screenshots/day1-hello.png)
 
 
 ## Custom VPC + Public/Private Subnets (Result)
@@ -41,7 +41,7 @@ Build a cost-optimized, reproducible multi-region DR reference on AWS using Clou
 
 **Screenshot**
 
-!Custom VPC(demo/failover-test-screenshots/day2.png)
+![Custom VPC](demo/failover-test-screenshots/day2.png)
 
 
 ## Auto Scaling Group (ASG)
@@ -57,7 +57,7 @@ Build a cost-optimized, reproducible multi-region DR reference on AWS using Clou
 
 **Screenshot**
 
-!ASG(demo/failover-test-screenshots/day3-asg.png)
+![ASG](demo/failover-test-screenshots/day3-asg.png)
 
 
 ## Secondary Region (us-east-1)
@@ -70,7 +70,7 @@ Build a cost-optimized, reproducible multi-region DR reference on AWS using Clou
 
 **Screenshot**
 
-!Secondary (demo/failover-test-screenshots/day4-secondary.png) 
+![Secondary](demo/failover-test-screenshots/day4-secondary.png) 
 
 ## Regional Failover Demonstration (no custom domain) 
 
@@ -115,8 +115,8 @@ aws autoscaling update-auto-scaling-group \
 
 **Screenshots**
 
-!Before (Primary OK)](demo/failover-test-screenshots/day4-failover-before.png)
-!After (Secondary Serving)](demo/failover-test-screenshots/day4-failover-after.png)
+![Before (Primary OK)](demo/failover-test-screenshots/day4-failover-before.png)
+![After (Secondary Serving)](demo/failover-test-screenshots/day4-failover-after.png)
 
 ## S3 Cross-Region Replication (CRR)
 
@@ -133,9 +133,9 @@ aws autoscaling update-auto-scaling-group \
 
 **Screenshots**
 
-!Source](demo/failover-test-screenshots/day5-s3-src.png)
-!Destination](demo/failover-test-screenshots/day5-s3-dest.png)
-!Destination](demo/failover-test-screenshots/day5-s3-dest-details.png)
+![Source](demo/failover-test-screenshots/day5-s3-src.png)
+![Destination](demo/failover-test-screenshots/day5-s3-dest.png)
+![Destination](demo/failover-test-screenshots/day5-s3-dest-details.png)
 
 ## RDS Connectivity Test 
 
@@ -149,8 +149,8 @@ aws autoscaling update-auto-scaling-group \
 
 **Screenshots**
 
-!— RDS Instance](demo/failover-test-screenshots/day6-rds-instance.png)
-!— MySQL Seed](demo/failover-test-screenshots/day6-mysql-seed.png)
+!— [RDS Instance](demo/failover-test-screenshots/day6-rds-instance.png)
+!— [MySQL Seed](demo/failover-test-screenshots/day6-mysql-seed.png)
 
 ## Monitoring & Alerts (CloudWatch + SNS)
 
@@ -201,9 +201,9 @@ aws cloudwatch put-metric-alarm \
   --region $REGION
 
 **Screenshots**
-- !ASG Alarm in ALARM(demo/failover-test-screenshots/asg-alaram.png)
-- !SNS Email Notification(demo/failover-test-screenshots/cpu-alaram.png)
-- Cloudwatch Notification(demo/failover-test-screenshots/cloudwatch1.png)
+- ![ASG Alarm in ALARM](demo/failover-test-screenshots/asg-alaram.png)
+- ![SNS Email Notification](demo/failover-test-screenshots/cpu-alaram.png)
+- ![Cloudwatch Notification](demo/failover-test-screenshots/cloudwatch1.png)
   
 
 
