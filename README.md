@@ -201,8 +201,9 @@ aws cloudwatch put-metric-alarm \
   --region $REGION
 
 **Screenshots**
-- !ASG Alarm in ALARM(demo/failover-test-screenshots/alarm-asg.png)
-- !SNS Email Notification(demo/failover-test-screenshots/sns-email.png)
+- !ASG Alarm in ALARM(demo/failover-test-screenshots/asg-alaram.png)
+- !SNS Email Notification(demo/failover-test-screenshots/cpu-alaram.png)
+- Cloudwatch Notification(demo/failover-test-screenshots/cloudwatch1.png)
   
 
 
