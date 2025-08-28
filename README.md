@@ -28,7 +28,8 @@
 - **Database (optional):** RDS MySQL in private subnets (primary) — connectivity tested from the app tier, then removed to minimize cost.
 - **Monitoring & Alerts:** CloudWatch alarms (ASG InService, EC2 CPU) publish to an SNS topic with email subscription.
 
-![Architecture](diagrams/Architecture.png)
+![Architecture](diagrams/architecture.png)
+
 
 
 ## Repository Structure
